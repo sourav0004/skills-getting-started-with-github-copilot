@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
+
         const activityCard = document.createElement("div");
         activityCard.className = "activity-card";
 
@@ -25,15 +26,46 @@ document.addEventListener("DOMContentLoaded", () => {
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          <div class="participants-section">
+            <p><strong>Participants:</strong></p>
+            <ul class="participants-list">
+              ${details.participants.length > 0 ? details.participants.map(p => `<li class=\"participant-item\">${p} <span class=\"delete-participant\" title=\"Remove\" data-activity=\"${name}\" data-email=\"${p}\">&#128465;</span></li>`).join('') : '<li>No participants yet.</li>'}
+            </ul>
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
+
 
         // Add option to select dropdown
         const option = document.createElement("option");
         option.value = name;
         option.textContent = name;
         activitySelect.appendChild(option);
+
+        // Add event listener for delete icons after rendering
+        setTimeout(() => {
+          const deleteIcons = activityCard.querySelectorAll('.delete-participant');
+          deleteIcons.forEach(icon => {
+            icon.addEventListener('click', async (e) => {
+              const activityName = icon.getAttribute('data-activity');
+              const email = icon.getAttribute('data-email');
+              if (confirm(`Remove ${email} from ${activityName}?`)) {
+                try {
+                  const response = await fetch(`/activities/${encodeURIComponent(activityName)}/unregister?email=${encodeURIComponent(email)}`, { method: 'POST' });
+                  const result = await response.json();
+                  if (response.ok) {
+                    fetchActivities();
+                  } else {
+                    alert(result.detail || 'Failed to remove participant.');
+                  }
+                } catch (err) {
+                  alert('Error removing participant.');
+                }
+              }
+            });
+          });
+        }, 0);
       });
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
